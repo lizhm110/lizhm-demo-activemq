@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- status=debug 可以查看log4j的装配过程， monitorInterval单位是秒 -->
+<configuration status="off" monitorInterval="300">
+	<properties>
+		<property name="LOG_HOME">${sys:catalina.home}/logs</property>
+		<property name="FULL_FILE_NAME">app</property>
+		<Property name="PATTERN">%d{yyyy-MM-dd HH:mm:ss} %-5level %thread %X{traceId} %X{applicationName} %X{bizType} %c{36}#%M:%line - %m%n</Property>
+		<property name="MAX_LOG_FILE_SIZE">500MB</property>
+	</properties>
+
+	<appenders>
+		<!-- 定义控制台输出 -->
+		<Console name="Console" target="SYSTEM_OUT">
+			<PatternLayout pattern="${PATTERN}" />
+		</Console>
+
+		<!-- 定义文件输出日志，包括debug、info、warn -->
+		<RollingRandomAccessFile name="app-file"
+								 fileName="${LOG_HOME}/${FULL_FILE_NAME}.log"
+								 filePattern="${LOG_HOME}/%d{yyyy-MM}/${FULL_FILE_NAME}-%d{yyyyMMdd}-%i.log.zip">
+			<Filters>
+				<ThresholdFilter level="ERROR" onMatch="DENY" onMismatch="ACCEPT" />
+			</Filters>
+			<PatternLayout pattern="${PATTERN}" />
+			<Policies>
+				<TimeBasedTriggeringPolicy />
+				<SizeBasedTriggeringPolicy size="${MAX_LOG_FILE_SIZE}" />
+			</Policies>
+			<DefaultRolloverStrategy max="30" />
+		</RollingRandomAccessFile>
+
+		<!--使用Tcp通信把日志写到logstash收集器中-->
+		<!--<Socket name="xtracer-logstash" host="${env.logstash.host}" port="${env.logstash.port}" immediateFlush="false" connectTimeoutMillis="5000" reconnectionDelay="5000">
+            <PatternLayout pattern="${PATTERN}" />
+        </Socket>-->
+
+		<!--文件日志转为异步处理-->
+		<Async name="async-app" includeLocation="true">
+			<AppenderRef ref="app-file" />
+		</Async>
+		<!-- <Async name="async-xtracer" includeLocation="true">
+             <AppenderRef ref="xtracer-logstash" />
+         </Async>-->
+	</appenders>
+
+	<loggers>
+		<logger name="org.springframework.core" level="error"> </logger>
+		<logger name="org.springframework.beans" level="error"> </logger>
+		<logger name="org.springframework.context"  level="error"> </logger>
+		<logger name="org.springframework.web" level="error">  </logger>
+		<logger name="com.alibaba.dubbo" level="error">  </logger>
+
+		<!-- Root Logger -->
+		<root level="DEBUG">
+			<appender-ref ref="async-app" />
+			<!--<appender-ref ref="async-xtracer" />-->
+			<appender-ref ref="Console" />
+		</root>
+	</loggers>
+</configuration>
